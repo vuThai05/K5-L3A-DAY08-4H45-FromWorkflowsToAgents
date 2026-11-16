@@ -1,0 +1,127 @@
+{
+  "count": 20,
+  "passed": 20,
+  "crash_safety": "20/20",
+  "scenarios": [
+    {
+      "id": "CR-01",
+      "point": "before_effect",
+      "passed": true,
+      "reason": "ok"
+    },
+    {
+      "id": "CR-02",
+      "point": "before_effect",
+      "passed": true,
+      "reason": "ok"
+    },
+    {
+      "id": "CR-03",
+      "point": "before_effect",
+      "passed": true,
+      "reason": "ok"
+    },
+    {
+      "id": "CR-04",
+      "point": "before_effect",
+      "passed": true,
+      "reason": "ok"
+    },
+    {
+      "id": "CR-05",
+      "point": "before_effect",
+      "passed": true,
+      "reason": "ok"
+    },
+    {
+      "id": "CR-06",
+      "point": "after_effect_before_checkpoint",
+      "passed": true,
+      "reason": "ok"
+    },
+    {
+      "id": "CR-07",
+      "point": "after_effect_before_checkpoint",
+      "passed": true,
+      "reason": "ok"
+    },
+    {
+      "id": "CR-08",
+      "point": "after_effect_before_checkpoint",
+      "passed": true,
+      "reason": "ok"
+    },
+    {
+      "id": "CR-09",
+      "point": "after_effect_before_checkpoint",
+      "passed": true,
+      "reason": "ok"
+    },
+    {
+      "id": "CR-10",
+      "point": "after_effect_before_checkpoint",
+      "passed": true,
+      "reason": "ok"
+    },
+    {
+      "id": "CR-11",
+      "point": "after_effect_before_checkpoint",
+      "passed": true,
+      "reason": "ok"
+    },
+    {
+      "id": "CR-12",
+      "point": "after_effect_before_checkpoint",
+      "passed": true,
+      "reason": "ok"
+    },
+    {
+      "id": "CR-13",
+      "point": "after_checkpoint",
+      "passed": true,
+      "reason": "ok"
+    },
+    {
+      "id": "CR-14",
+      "point": "after_checkpoint",
+      "passed": true,
+      "reason": "ok"
+    },
+    {
+      "id": "CR-15",
+      "point": "after_checkpoint",
+      "passed": true,
+      "reason": "ok"
+    },
+    {
+      "id": "CR-16",
+      "point": "after_checkpoint",
+      "passed": true,
+      "reason": "ok"
+    },
+    {
+      "id": "CR-17",
+      "point": "after_checkpoint",
+      "passed": true,
+      "reason": "ok"
+    },
+    {
+      "id": "CR-18",
+      "point": "amount_conflict_on_retry",
+      "passed": true,
+      "reason": "ok"
+    },
+    {
+      "id": "CR-19",
+      "point": "retry_without_approval",
+      "passed": true,
+      "reason": "ok"
+    },
+    {
+      "id": "CR-20",
+      "point": "swarm_after_effect_before_checkpoint",
+      "passed": true,
+      "reason": "ok"
+    }
+  ]
+}
