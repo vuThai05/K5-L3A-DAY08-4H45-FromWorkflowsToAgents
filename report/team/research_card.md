@@ -17,19 +17,19 @@ Phần này nối tiếp phần mini research ở buổi lý thuyết (slide 62�
 
 | Field | Hướng dẫn | Nhóm điền |
 | --- | --- | --- |
-| CÂU | R1 / R2 / R3 / R4 | R4 |
-| SOURCE | Paper/blog, năm, URL, loại bằng chứng (benchmark, production report, blog kinh nghiệm) | EMNLP 2026, *Rethinking Evaluation of MAS Efficiency* (slide 44, 59) — benchmark/thực nghiệm |
-| CLAIM | Một kết luận gốc của nguồn. Không viết rộng hơn phạm vi paper | "Efficiency gain" quan sát được giữa các kiến trúc agent có thể đến từ cách thiết kế benchmark (seed, corpus, tool khác nhau), không hẳn từ bản thân kiến trúc. Phải giữ cố định runtime/model/tool để kết luận đáng tin |
-| BOUNDARY | Model / dataset / setup giới hạn kết luận đó | Giới hạn ở các benchmark multi-agent cụ thể paper khảo sát; không khẳng định đúng cho mọi hệ agent hay mọi benchmark |
-| HYPOTHESIS | Nếu đổi shape A→B (hoặc bật/tắt một thành phần), metric X sẽ đổi theo hướng nào, khoảng bao nhiêu | Nếu giữ cố định MockLLM, 5 seed, 14 claim public và bảng giá, chỉ đổi shape (workflow→single→orchestrator→swarm), thì chênh lệch pass_rate và cost/success quan sát được phản ánh đúng khác biệt kiến trúc (mức tự chủ), không phải nhiễu do seed/corpus khác nhau giữa các lần chạy |
-| METHOD | Biến giữ cố định: model, tools, seed, corpus, giá, evaluator. Biến duy nhất được thay đổi: … | Cố định: MockLLM, seed `11,22,33,44,55`, 14 claim trong `data/public_claims.jsonl`, `config/pricing.yaml`, evaluator `lab8.metrics`. Biến duy nhất thay đổi: shape (`workflow`/`single`/`orchestrator`/`swarm`) |
-| FAILURE / METRIC | Một lỗi dự kiến và cách đo nó: pass rate, pass^5, variance, cost/success, leak, bypass | Lỗi dự kiến: một shape fail nhiều hơn chỉ vì seed xấu/corpus khác, không phải vì kiến trúc kém. Đo bằng `seed_variance`, `seed_min`/`seed_max` trong `benchmark.json` — nếu variance ≈ 0 trên 3 shape thì chênh lệch pass_rate giữa shape là thật, không phải nhiễu đo lường |
+| CÂU | R1 / R2 / R3 / R4 | |
+| SOURCE | Paper/blog, năm, URL, loại bằng chứng (benchmark, production report, blog kinh nghiệm) | |
+| CLAIM | Một kết luận gốc của nguồn. Không viết rộng hơn phạm vi paper | |
+| BOUNDARY | Model / dataset / setup giới hạn kết luận đó | |
+| HYPOTHESIS | Nếu đổi shape A→B (hoặc bật/tắt một thành phần), metric X sẽ đổi theo hướng nào, khoảng bao nhiêu | |
+| METHOD | Biến giữ cố định: model, tools, seed, corpus, giá, evaluator. Biến duy nhất được thay đổi: … | |
+| FAILURE / METRIC | Một lỗi dự kiến và cách đo nó: pass rate, pass^5, variance, cost/success, leak, bypass | |
 
 ## Kết quả ablation
 
-- Lệnh đã chạy (copy nguyên văn): `python -m lab8.benchmark --shapes workflow,single,orchestrator,swarm --cases data/public_claims.jsonl --seeds 11,22,33,44,55 --out reports/benchmark.json`
-- Run id / file report: `src/reports/benchmark.json` (`by_shape.workflow`, `by_shape.single`, `by_shape.orchestrator`, `by_shape.swarm`)
-- Kết quả so với hypothesis (đúng / sai / không kết luận được), kèm số liệu: **Đúng.** Cả 4 shape chạy trên đúng cùng `controlled_variables` (cùng 14 claim, cùng 5 seed, cùng pricing) ghi trong chính file benchmark. `workflow`/`single`/`orchestrator` đạt `pass_rate = 1.000`, `seed_variance = 0.000000` trên cả 5 seed — không có nhiễu do seed. `swarm` đạt `pass_rate = 0.986`, `seed_variance = 0.000816`, fail đúng 1 trial ở seed chia hết cho 5 (lý do ghi rõ trong code: `REFERENCE_WEAKNESS`, swarm tin vào delay ghi tay trong ticket khi `seed % 5 == 0`). Vì corpus và seed giống hệt nhau cho cả 4 shape, chênh lệch pass_rate và cost/success (34.29 / 32.39 / 47.23 so với 49.57 VND mô phỏng) phản ánh đúng khác biệt kiến trúc, không phải do thiết kế benchmark thiên lệch.
-- Giới hạn: MockLLM không phải model sản xuất, latency là `unavailable`. Corpus public chỉ có 14 claim (bộ hidden có 40 claim × 5 seed nhưng nhóm không tự chạy được, chỉ giảng viên có grader riêng).
+- Lệnh đã chạy (copy nguyên văn):
+- Run id / file report:
+- Kết quả so với hypothesis (đúng / sai / không kết luận được), kèm số liệu:
+- Giới hạn: MockLLM không phải model sản xuất, latency là `unavailable`.
 
 Muốn đi xa hơn một ablation để lấy điểm cộng thì xem [docs/bonus_topics.md](../../docs/bonus_topics.md).
