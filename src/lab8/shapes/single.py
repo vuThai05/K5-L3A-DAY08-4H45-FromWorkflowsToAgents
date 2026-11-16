@@ -5,7 +5,7 @@ from __future__ import annotations
 import sqlite3
 
 from lab8.db import connect
-from lab8.durability import InjectedCrash, issue_refund
+from lab8.durability import issue_refund
 from lab8.mock_llm import complete
 from lab8.runtime import run_react
 from lab8.schemas import Budget, RunResult, make_run_id
@@ -88,12 +88,7 @@ def _run(conn: sqlite3.Connection, claim_id: str, *, seed: int, crash_at: str | 
         status, proposal, reason = "failed", 0, "step_cap"
     elif status == "ready":
         trace.add("quote", final.get("quote", {}))
-        try:
-            written = issue_refund(conn, claim_id, proposal, crash_at=crash_at)
-        except InjectedCrash:
-            trace.add("crash", {"at": crash_at})
-            trace.write()
-            raise
+        written = issue_refund(conn, claim_id, proposal, crash_at=crash_at)
         if not written["ok"]:
             status = "failed" if written["conflict"] else "denied"
             reason = written["reason"]

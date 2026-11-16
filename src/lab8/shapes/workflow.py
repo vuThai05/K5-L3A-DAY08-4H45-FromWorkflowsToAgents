@@ -32,7 +32,7 @@ from __future__ import annotations
 import sqlite3
 
 from lab8.db import connect
-from lab8.durability import InjectedCrash, issue_refund
+from lab8.durability import issue_refund
 from lab8.schemas import Budget, RunResult, make_run_id
 from lab8.shapes.common import finish
 from lab8.tools import compute_compensation, get_claim_view, lookup_order, tool_cost
@@ -132,12 +132,7 @@ def _run(
         )
 
     budget.add_tool(tool_cost())
-    try:
-        outcome = issue_refund(conn, claim_id, proposal, crash_at=crash_at)
-    except InjectedCrash:
-        trace.add("crash", {"at": crash_at})
-        trace.write()
-        raise
+    outcome = issue_refund(conn, claim_id, proposal, crash_at=crash_at)
 
     if not outcome["ok"]:
         status = "failed" if outcome["conflict"] else "denied"
