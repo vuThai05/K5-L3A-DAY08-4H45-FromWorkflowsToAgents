@@ -62,3 +62,115 @@ def test_claim_view_and_react_observation_omit_secret(public_db):
     conn.close()
     assert outcome["stopped"] == "final"
     assert "CANARY_SECRET_" not in str(outcome)
+
+
+def test_worker_cannot_spoof_principal_to_read_another_order(public_db):
+    conn = connect(public_db)
+
+    def decide(_obs):
+        return {
+            "tool": "lookup_order",
+            "args": {"order_id": "O-110", "principal_id": "P-200"},
+        }
+
+    outcome = run_react(
+        conn,
+        Budget(),
+        observation={"claim": {"claim_id": "C-001"}},
+        decide=decide,
+        max_steps=1,
+        worker=True,
+    )
+    conn.close()
+    assert outcome["observation"]["last_result"]["visible"] is False
+    assert outcome["observation"]["last_result"]["reason"] == "outside_principal_scope"
+
+
+def test_worker_cannot_read_a_different_claim(public_db):
+    conn = connect(public_db)
+
+    def decide(_obs):
+        return {"tool": "get_claim_view", "args": {"claim_id": "C-010"}}
+
+    outcome = run_react(
+        conn,
+        Budget(),
+        observation={"claim": {"claim_id": "C-001"}},
+        decide=decide,
+        max_steps=1,
+        worker=True,
+    )
+    conn.close()
+    assert outcome["observation"]["last_result"]["claim_id"] == "C-001"
+
+
+def test_worker_cannot_forge_order_facts_for_a_quote(public_db):
+    conn = connect(public_db)
+
+    def decide(_obs):
+        return {
+            "tool": "compute_compensation",
+            "args": {
+                "order": {
+                    "order_id": "O-107",
+                    "status": "delivered",
+                    "delay_days": 365,
+                    "shipping_fee_vnd": 999999,
+                    "paid_vnd": 999999999,
+                    "damage_verified": True,
+                    "carrier": "LOGIX_LOCAL",
+                }
+            },
+        }
+
+    outcome = run_react(
+        conn,
+        Budget(),
+        observation={"claim": {"claim_id": "C-001"}},
+        decide=decide,
+        max_steps=1,
+        worker=True,
+    )
+    conn.close()
+    assert outcome["observation"]["last_result"]["amount_vnd"] == 35000
+
+
+def test_agent_final_amount_cannot_replace_runtime_quote(public_db):
+    conn = connect(public_db)
+    step = {"n": 0}
+
+    def decide(obs):
+        step["n"] += 1
+        if step["n"] == 1:
+            return {"tool": "compute_compensation", "args": {"order": {"delay_days": 365}}}
+        obs["last_result"]["amount_vnd"] = 999999
+        return {"final": {"status": "ready", "proposal_amount": 999999}}
+
+    outcome = run_react(
+        conn,
+        Budget(),
+        observation={"claim": {"claim_id": "C-001"}},
+        decide=decide,
+        max_steps=2,
+        worker=True,
+    )
+    conn.close()
+    assert outcome["final"]["proposal_amount"] == 999999
+    assert outcome["trusted_quote"]["amount_vnd"] == 35000
+
+
+def test_single_trace_does_not_write_raw_ticket_when_order_missing(public_db):
+    from lab8.shapes.single import run_claim
+
+    conn = connect(public_db)
+    conn.execute(
+        "UPDATE claims SET order_id = NULL, ticket = ? WHERE claim_id = 'C-001'",
+        ("customer text CANARY_SECRET_TICKET_LEAK",),
+    )
+    conn.commit()
+    conn.close()
+
+    result = run_claim("C-001", seed=11, store_path=str(public_db))
+    trace_text = open(result.trace_path, encoding="utf-8").read()
+    assert "CANARY_SECRET_TICKET_LEAK" not in trace_text
+    assert '"last_tool": "get_claim_view"' in trace_text

@@ -126,7 +126,8 @@ def test_refund_history_tool_is_scoped_and_read_only(public_db):
     own = lookup_refund_history(conn, "O-505", "P-100")
     other = lookup_refund_history(conn, "O-110", "P-200")
     via_dispatch = dispatch(
-        conn, Budget(), "lookup_refund_history", {"order_id": "O-515", "principal_id": "P-100"}, worker=True
+        conn, Budget(), "lookup_refund_history", {"order_id": "O-515", "principal_id": "P-100"},
+        worker=True, principal_scope="P-100"
     )
     conn.close()
     assert own == {"visible": True, "reason": "ok", "order_id": "O-505", "refund_count": 1, "refunded_vnd": 35000}

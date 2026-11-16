@@ -79,7 +79,8 @@ def _run(conn: sqlite3.Connection, claim_id: str, *, seed: int, crash_at: str | 
     outcome = run_react(conn, budget, observation=observation, decide=decide, max_steps=8, worker=True)
     final = outcome["final"]
     trace.add("agent", {"stopped": outcome["stopped"], "status": final.get("status")})
-    trace.add("observation", outcome.get("observation", {}))
+    observation = outcome.get("observation", {})
+    trace.add("observation", {"last_tool": observation.get("last_tool")})
 
     status = final.get("status", "failed")
     proposal = int(final.get("proposal_amount", 0))
@@ -87,7 +88,13 @@ def _run(conn: sqlite3.Connection, claim_id: str, *, seed: int, crash_at: str | 
     if outcome["stopped"] == "step_cap":
         status, proposal, reason = "failed", 0, "step_cap"
     elif status == "ready":
-        trace.add("quote", final.get("quote", {}))
+        quote = outcome.get("trusted_quote")
+        if quote is None:
+            status, proposal, reason = "failed", 0, "missing_trusted_quote"
+        else:
+            proposal = int(quote["amount_vnd"])
+            trace.add("quote", quote)
+    if status == "ready":
         written = issue_refund(conn, claim_id, proposal, crash_at=crash_at)
         if not written["ok"]:
             status = "failed" if written["conflict"] else "denied"
