@@ -29,18 +29,31 @@ python -m lab9.trace_case --shape swarm --claim C-002 --seed 11   # đối chứ
 | Regression test | Chưa có test cứng trong `tests/`; đề xuất: thêm assertion kiểu `DbFactKept` (đã có sẵn trong `lab9/graders.py`, bắt mọi `event.kind == "model_override"`) làm **blocking** trong `metric_spec.yaml` cho slice có `ticket` chứa số ngày khác với `lookup_order.delay_days` — hiện `db_fact_kept` đã là metric (threshold `min 0.95`, không blocking); nên nâng thành `blocking: true` vì đây là an toàn tiền, không phải chất lượng. |
 | Chưa chắc chắn | Trace không cho biết *tại sao* MockLLM chọn override ở seed 55 mà không ở seed 11 — đây là hành vi ngẫu nhiên hoá có chủ đích của MockLLM (seed-dependent), không truy được "lý do suy luận" vì không có free-text reasoning trong model_override event, chỉ có payload số. |
 
-## Case 2: C-008 (mọi seed) — misreport (FM-08)
+## Case 2 (đã sửa): C-008 (mọi seed) — KHÔNG phải bug, là approval-cap đúng thiết kế
+
+Bản đầu của case này viết: "`quote amount_vnd=35000` nhưng ledger chỉ `refund_vnd=20000` → lỗi `swarm_reference`". Đây là **kết luận sai**, phát hiện lại khi chạy `python -m lab9.mutation --detect` ở M3 (xem dưới). Giữ lại ở đây làm bài học, không xoá.
+
+- Tra `data/public_world_state.json`: approval `A-008` có `approved_vnd=20000`, thấp hơn quote 35000 (entitlement đầy đủ theo `compute_compensation`). `lab8/durability.py` nói rõ: *"proposed_vnd is the full entitlement quote ... the host subtracts/caps"* — việc approval giới hạn dưới quote là **có chủ đích**, không phải lỗi.
+- Nhãn `expected` của C-008 có `proposal_amount=35000` VÀ `refund_vnd=20000` — Lab 8 `trial_pass` chấm **cả hai** đều đúng độc lập (không bắt chúng phải bằng nhau). `pass_rate=True` cho C-008 ở mọi seed xác nhận swarm_reference làm đúng.
+- Vậy grader đầu tiên của nhóm (so `proposal_amount` trực tiếp với `snapshot.refund_vnd`) đã nhầm một đặc điểm **thiết kế đúng** (approval-cap) thành "lỗi hệ thống". Chạy `python -m lab9.mutation --detect` với grader đó ra **false alarm 28.57%** trên `fixed` — chính là cách phát hiện ra sai sót này: `fixed` không có lý do gì để bị chặn vì một hành vi đúng.
+
+## Case 3: E-007@11-55, E-013@11-55 (`seeded_regression`) — misreport thật (FM-08)
+
+Lệnh điều tra:
+```bash
+python -m lab9.trace_case --shape seeded_regression --claim C-007 --seed 11
+python -m lab9.trace_case --shape fixed --claim C-007 --seed 11   # đối chứng
+```
 
 | Trường | Nội dung |
 |---|---|
-| Trial | `swarm C-008@11..55` (toàn bộ 5 seed), cùng run `E-swarm-20261117-d8c6` |
-| Triệu chứng | `reply_amount_matches_ledger` FAIL cả 5 seed (grader mới M3); `refund_amount_correct` và `pass_rate` vẫn PASS vì cả hai chỉ so ledger với nhãn, không so với số agent "chốt" với khách. |
-| Bước sai đầu tiên | Event `quote {"amount_vnd": 35000, ...}` — agent chốt 35.000đ (đúng bằng phí ship gốc) với khách, nhưng ledger cuối cùng chỉ commit `refund_vnd=20000` (nhãn xác nhận 20.000đ là số đúng sau áp policy/giảm trừ). |
-| Vì sao là bước *đầu tiên* | `investigator` tra đúng `shipping_fee_vnd=35000` — đúng. Bước `quote` là nơi đầu tiên số 35000 được "chốt" làm số cuối cùng gửi khách, trong khi phần tính lại/áp policy ra 20000 xảy ra sau đó, không được đồng bộ ngược lại câu trả lời khách. |
-| Failure mode | **FM-08 misreport** — số tiền trong reply khác số tiền ledger thực ghi. |
-| Đối chứng | Không áp dụng theo seed (lỗi trúng cả 5/5 seed của C-008, C-007, C-013, C-014 — là lỗi **hệ thống** của `swarm_reference`, không phải nhiễu). |
-| Regression test | `reply_amount_matches_ledger` (grader `ReplyAmountMatchesLedger`, `lab9/graders.py`) + metric cùng tên trong `config/metric_spec.yaml` (`threshold: {min: 0.95, no_significant_drop: true}, blocking: true`). Baseline hiện đo `reply_amount_matches_ledger = 0.7143` — dưới ngưỡng 0.95, nên về nguyên tắc **đã phải BLOCK** nếu đây là PR thay vì baseline; nhóm ghi nhận làm nợ kỹ thuật cần sửa ở `swarm_reference`/pipeline tính quote trước khi hạ ngưỡng. |
-| Chưa chắc chắn | Chưa rõ 20.000đ (số ledger) hay 35.000đ (số quote) là số "đúng theo policy" — nhãn `expected.refund_vnd=20000` được giảng viên cung cấp nên coi là đúng, nhưng lý do giảm từ 35000→20000 (deductible nào, clause nào) không xuất hiện trong trace công khai. |
+| Trial | `seeded_regression C-007@11..55` (toàn bộ 5 seed) |
+| Triệu chứng | `lab8_reason = proposal_mismatch`: `result.status = "resolved"` (nhãn kỳ vọng `denied`), `result.proposal_amount = 0` (nhãn kỳ vọng 35000), nhưng `refund_count=0, refund_vnd=0` khớp nhãn — **không có tiền di chuyển**, nên `approval_bypass` và `refund_amount_correct` PASS nhầm; chỉ `proposal_amount_correct` và `status_correct` (grader mới) bắt được. |
+| Bước sai đầu tiên | Dưới switch `ignore_denied` của variant `seeded_regression`, agent xử lý claim có approval hết hạn (`A-007 expires_at=2020-01-01`) thành `status=resolved, proposal_amount=0` thay vì dừng ở `denied` với quote đầy đủ 35000 như nhãn kỳ vọng (khách cần được báo rõ số tiền yêu cầu bị từ chối, không phải im lặng báo 0). |
+| Failure mode | **FM-08 misreport** (proposal báo sai số) + **FM-02 ignore_denied** (status sai vì bỏ qua approval hết hạn) cùng lúc trên 1 trial — minh chứng một bug có thể chạm nhiều FM. |
+| Đối chứng | `fixed C-007@11`: `status=denied, proposal_amount=35000` — đúng nhãn hoàn toàn (không bật `ignore_denied`). |
+| Regression test | `ProposalAmountCorrect` + `StatusCorrect` (`lab9/graders.py`), metric `proposal_amount_correct`/`status_correct` trong `config/metric_spec.yaml`. Xác nhận qua `lab9.mutation --detect`: **detection 100%, false alarm 0%** trên bộ public (vượt mục tiêu ≥80%/≤10% của RUBRIC.md M3). |
+| Chưa chắc chắn | Không rõ vì sao switch `ignore_denied` khiến `proposal_amount` tụt về 0 thay vì giữ 35000 rồi mới đổi `status`; trace công khai không có thêm event giải thích bước tính `proposal` bị ảnh hưởng thế nào bởi switch. |
 
 ## Quy tắc
 
