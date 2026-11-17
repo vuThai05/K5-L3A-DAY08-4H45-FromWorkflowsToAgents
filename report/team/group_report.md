@@ -55,8 +55,8 @@ Chi tiết đóng góp của từng thành viên nằm trong bảng đóng góp 
 
 Tóm tắt:
 - **Thái**: viết shape `single` (CP2).
-- **Dung**: viết shape `orchestrator` (CP2–CP3), vá lỗi rò ticket vào trace + thêm test chống giả mạo tham số (CP4).
-- **Mỹ**: viết shape `workflow` (CP2), chạy benchmark và quyết định kiến trúc (CP5), làm bonus B3.
+- **Dung**: viết shape `orchestrator` (CP2–CP3), kiểm tra handoff và xử lý crash và report decision_adr.md.
+- **Mỹ**: viết shape `workflow` (CP2), vá lỗi rò ticket vào trace và thêm test chống giả mạo tham số, chạy benchmark và quyết định kiến trúc (CP5), làm bonus B3.
 
 ## 7. Hạn chế và hướng cải thiện
 
