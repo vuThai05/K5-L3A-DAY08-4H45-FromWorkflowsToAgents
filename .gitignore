@@ -18,5 +18,9 @@ student_drop/
 src/reports/hidden_grade.json
 src/reports/bonus_hidden.json
 
+# Inspect AI's own run logs (bonus: lab9.bonus_inspect). The comparison report that matters is
+# committed at src/reports/bonus_inspect.json / docs/bonus_inspect.md.
+src/logs/
+
 # Instructor-only hidden pack. Never push it to this repo.
 src/eval/instructor/
